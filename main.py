@@ -124,8 +124,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @app.post("/goals/", response_model=Goal)
 async def create_goal(goal: Goal, current_user: str = Depends(get_current_user), db: Session = Depends(get_db), ):
-    db_goal = Goal(title=goal.title, due_date=goal.due_date,
-                   progress=goal.progress, completed=goal.completed)
+    db_goal = GoalDB(title=goal.title, due_date=goal.due_date,
+                     progress=goal.progress)
     db.add(db_goal)
     db.commit()
     db.refresh(db_goal)
@@ -134,13 +134,13 @@ async def create_goal(goal: Goal, current_user: str = Depends(get_current_user),
 
 @app.get("/goals/")
 async def read_goals(current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    goals = db.query(Goal).all()
+    goals = db.query(GoalDB).all()
     return goals
 
 
-@app.put("/goals/{goal_id}")
+@app.put("/goals/{goal_id}", response_model=Goal)
 async def update_goal(goal_id: int, goal: Goal, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_goal = db.query(Goal).filter(Goal.id == goal_id).first()
+    db_goal = db.query(GoalDB).filter(GoalDB.id == goal_id).first()
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
     db_goal.title = goal.title
@@ -154,7 +154,7 @@ async def update_goal(goal_id: int, goal: Goal, current_user: str = Depends(get_
 
 @app.delete("/goals/{goal_id}")
 async def delete_goal(goal_id: int, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_goal = db.query(Goal).filter(Goal.id == goal_id).first()
+    db_goal = db.query(GoalDB).filter(GoalDB.id == goal_id).first()
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
     db.delete(db_goal)
