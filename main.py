@@ -44,14 +44,14 @@ class GoalDB(Base):
     title = Column(String, index=True)
     due_date = Column(DateTime)
     progress = Column(Integer)
-    completed = Column(Boolean, default=False)
+    user = Column(String, index=True)
 
 
 class Goal(BaseModel):
     title: str
     due_date: datetime
     progress: int
-    completed: bool
+    user: str
 
     class Config:
         orm_mode = True
@@ -124,8 +124,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @app.post("/goals/", response_model=Goal)
 async def create_goal(goal: Goal, current_user: str = Depends(get_current_user), db: Session = Depends(get_db), ):
+
+    if goal.user != current_user:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to create this goal")
+
     db_goal = GoalDB(title=goal.title, due_date=goal.due_date,
-                     progress=goal.progress)
+                     progress=goal.progress, user=current_user)
     db.add(db_goal)
     db.commit()
     db.refresh(db_goal)
@@ -140,13 +145,20 @@ async def read_goals(current_user: str = Depends(get_current_user), db: Session 
 
 @app.put("/goals/{goal_id}", response_model=Goal)
 async def update_goal(goal_id: int, goal: Goal, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+
     db_goal = db.query(GoalDB).filter(GoalDB.id == goal_id).first()
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
+
+    if db_goal.username != current_user:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update this goal")
+
     db_goal.title = goal.title
     db_goal.due_date = goal.due_date
     db_goal.progress = goal.progress
     db_goal.completed = goal.completed
+
     db.commit()
     db.refresh(db_goal)
     return db_goal
@@ -157,6 +169,11 @@ async def delete_goal(goal_id: int, current_user: str = Depends(get_current_user
     db_goal = db.query(GoalDB).filter(GoalDB.id == goal_id).first()
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
+
+    if db_goal.username != current_user:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update this goal")
+
     db.delete(db_goal)
     db.commit()
     return {"message": "Goal deleted successfully"}
