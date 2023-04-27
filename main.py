@@ -10,8 +10,17 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import status
 from pydantic import BaseModel
 from pydantic import BaseSettings
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 class Settings(BaseSettings):
@@ -122,7 +131,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.post("/goals/", response_model=Goal)
+@app.post("/goals/")
 async def create_goal(goal: Goal, current_user: str = Depends(get_current_user), db: Session = Depends(get_db), ):
 
     if goal.user != current_user:
