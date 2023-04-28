@@ -148,7 +148,7 @@ async def create_goal(goal: Goal, current_user: str = Depends(get_current_user),
 
 @app.get("/goals/")
 async def read_goals(current_user: str = Depends(get_current_user), db: Session = Depends(get_db)):
-    goals = db.query(GoalDB).all()
+    goals = db.query(GoalDB).filter(GoalDB.user == current_user).all()
     return goals
 
 
@@ -159,14 +159,13 @@ async def update_goal(goal_id: int, goal: Goal, current_user: str = Depends(get_
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
 
-    if db_goal.username != current_user:
+    if db_goal.user != current_user:
         raise HTTPException(
             status_code=403, detail="Not authorized to update this goal")
 
     db_goal.title = goal.title
     db_goal.due_date = goal.due_date
     db_goal.progress = goal.progress
-    db_goal.completed = goal.completed
 
     db.commit()
     db.refresh(db_goal)
@@ -179,7 +178,7 @@ async def delete_goal(goal_id: int, current_user: str = Depends(get_current_user
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
 
-    if db_goal.username != current_user:
+    if db_goal.user != current_user:
         raise HTTPException(
             status_code=403, detail="Not authorized to update this goal")
 
